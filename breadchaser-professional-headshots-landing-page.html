@@ -1,0 +1,799 @@
+<html><head><base href="https://breadchaser.web%20keep%20everything%20the%20same%20but%20move%20the%20Pomodoro%20timer%20widget%20to%20the%20left%20side"><title>Breadchaser: Get Your Daily Bread 🍞</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Audiowide&display=swap');
+
+  :root {
+    --neon-color: #00ffff;
+    --bg-color: #0c0c1e;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--neon-color);
+    font-family: 'Orbitron', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0 0 40px 0;
+    /* overflow: hidden; */
+    perspective: 1000px;
+    background: linear-gradient(45deg, #0c0c1e, #1e1e3e);
+    min-height: 100vh
+  }
+
+  #game-container {
+    width: 400px;
+    margin: 20px auto;
+    border: 3px solid var(--neon-color);
+    border-radius: 15px;
+    padding: 20px;
+    background-color: rgba(12, 12, 30, 0.7);
+    box-shadow: 0 0 20px var(--neon-color), inset 0 0 10px var(--neon-color);
+    transition: transform 0.5s ease;
+  }
+
+  #game-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    margin-bottom: 20px;
+  }
+
+  .cell {
+    width: 45px;
+    height: 45px;
+    border: 1px solid var(--neon-color);
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(0,255,255,0.3));
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+
+  .cell:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--neon-color);
+  }
+
+  .cell.selected {
+    animation: pulse 1s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { box-shadow: 0 0 20px var(--neon-color); }
+    to { box-shadow: 0 0 40px var(--neon-color), 0 0 60px var(--neon-color); }
+  }
+
+  #score, #timer {
+    font-size: 24px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px var(--neon-color);
+    transition: all 0.3s ease;
+    font-family: 'Audiowide', cursive;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 5px var(--neon-color), 0 0 10px var(--neon-color), 0 0 15px var(--neon-color), 0 0 20px var(--neon-color);
+  }
+
+  @keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+      text-shadow: 0 0 5px var(--neon-color), 0 0 10px var(--neon-color), 0 0 15px var(--neon-color), 0 0 20px var(--neon-color);
+    }
+    20%, 24%, 55% {
+      text-shadow: none;
+    }
+  }
+
+  h1 {
+    font-size: 48px;
+    animation: flicker 2s infinite alternate;
+    margin-bottom: 30px;
+    font-family: 'Audiowide', cursive;
+  }
+
+  #links {
+    margin-top: 30px;
+  }
+
+  a {
+    color: var(--neon-color);
+    text-decoration: none;
+    margin: 0 15px;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    position: relative;
+    display: inline-block;
+  }
+
+  a::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: var(--neon-color);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  a:hover::after {
+    transform: scaleX(1);
+  }
+
+  a:hover {
+    text-shadow: 0 0 10px var(--neon-color);
+    transform: translateY(-2px) scale(1.1);
+  }
+
+  #music-control {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1000;
+  }
+
+  #pigeon-icon {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    font-size: 48px;
+    animation: rotate3D 10s linear infinite;
+    transform-style: preserve-3d;
+  }
+
+  @keyframes rotate3D {
+    0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+    100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+  }
+
+  #score-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: var(--neon-color);
+    text-shadow: 0 0 10px var(--neon-color);
+    opacity: 0;
+    transition: opacity 0.5s, transform 0.5s;
+    pointer-events: none;
+  }
+
+  #score-popup.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+
+  #game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+
+  #game-over.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  #game-over h2 {
+    font-size: 48px;
+    color: var(--neon-color);
+    margin-bottom: 20px;
+  }
+
+  #game-over button {
+    font-size: 24px;
+    padding: 10px 20px;
+    background-color: var(--neon-color);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  #game-over button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--neon-color);
+  }
+
+  #leaderboard {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%) perspective(1000px) rotateY(-30deg);
+    background-color: rgba(0, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    transition: transform 0.3s ease;
+  }
+
+  #leaderboard:hover {
+    transform: translateY(-50%) perspective(1000px) rotateY(0deg);
+  }
+
+  #leaderboard h3 {
+    margin-top: 0;
+    color: var(--neon-color);
+  }
+
+  #leaderboard ol {
+    padding-left: 20px;
+    color: white;
+  }
+
+  #pomodoro-widget {
+    position: fixed;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%) perspective(1000px) rotateY(30deg);
+    background-color: rgba(0, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    transition: transform 0.3s ease;
+  }
+
+  #pomodoro-widget:hover {
+    transform: translateY(-50%) perspective(1000px) rotateY(0deg);
+  }
+
+  #pomodoro-widget h3 {
+    margin-top: 0;
+    color: var(--neon-color);
+  }
+
+  #pomodoro-timer {
+    font-size: 24px;
+    margin: 10px 0;
+  }
+
+  #pomodoro-controls button {
+    background-color: var(--neon-color);
+    color: var(--bg-color);
+    border: none;
+    padding: 5px 10px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+  }
+
+  #pomodoro-controls button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--neon-color);
+  }
+
+  #start-button {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 24px;
+    padding: 15px 30px;
+    background: linear-gradient(45deg, #00ffff, #00ccff);
+    color: var(--bg-color);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #start-button:before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: rotate(45deg);
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  #start-button:hover:before {
+    left: 100%;
+  }
+
+  #start-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px var(--neon-color);
+  }
+
+  #professional-headshot {
+      margin-top: 40px;
+      padding: 20px;
+      background-color: rgba(0, 255, 255, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+
+    #professional-headshot h2 {
+      color: var(--neon-color);
+      font-family: 'Audiowide', cursive;
+      margin-bottom: 20px;
+    }
+
+    #tally-form {
+      /* Add any specific styles for the Tally form container if needed */
+    }
+
+</style>
+</head>
+<body>
+<div id="pigeon-icon">🕊️</div>
+<h1 class="neon-text">Breadchaser: Get Your Daily Bread 🍞</h1>
+<div id="game-container">
+  <div id="score">Score: <span id="score-value">0</span></div>
+  <div id="timer">Time: <span id="time-value">45</span>s</div>
+  <div id="game-board"></div>
+  <button id="start-button" onclick="startGame()">Initiate Breadchase</button>
+</div>
+<div id="links">
+  <a href="https://breadchaser.web/leaderboard">Breadwinner Leaderboard</a>
+  <a href="https://breadchaser.web/shop">Shop</a>
+  <a href="https://breadchaser.web/about">About Breadchaser DAO</a>
+</div>
+<div id="music-control" onclick="toggleMusic()">🔇</div>
+<div id="score-popup"></div>
+<div id="game-over">
+  <h2>Game Over!</h2>
+  <p>Your score: <span id="final-score"></span></p>
+  <button onclick="restartGame()">Play Again</button>
+</div>
+<div id="leaderboard">
+  <h3>Personal Best</h3>
+  <ol id="leaderboard-list"></ol>
+</div>
+<div id="pomodoro-widget">
+  <h3>Pomodoro Timer</h3>
+  <div id="pomodoro-timer">25:00</div>
+  <div id="pomodoro-controls">
+    <button onclick="startPomodoro()">Start</button>
+    <button onclick="pausePomodoro()">Pause</button>
+    <button onclick="resetPomodoro()">Reset</button>
+  </div>
+</div>
+
+<script>
+const BOARD_SIZE = 8;
+const GAME_DURATION = 45;
+const ICONS = ['🕊️', '🍞', '💼', '🕶️', '💰'];
+const SPECIAL_ICONS = {
+  4: '✅',
+  5: '🚀'
+};
+
+let score = 0;
+let timeLeft = GAME_DURATION;
+let board = [];
+let selectedCell = null;
+let isSwapping = false;
+let audio = new Audio('https://example.com/corporate-music.mp3');
+audio.loop = true;
+let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+let gameStarted = false;
+
+// Pomodoro variables
+let pomodoroTime = 25 * 60; // 25 minutes in seconds
+let pomodoroInterval;
+let pomodoroRunning = false;
+
+function toggleMusic() {
+  if (audio.paused) {
+    audio.play();
+    document.getElementById('music-control').textContent = '🔊';
+  } else {
+    audio.pause();
+    document.getElementById('music-control').textContent = '🔇';
+  }
+}
+
+function initializeBoardWithNoMatches() {
+  const gameBoard = document.getElementById('game-board');
+  gameBoard.innerHTML = '';
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    board[i] = [];
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.row = i;
+      cell.dataset.col = j;
+      cell.addEventListener('click', handleCellClick);
+      gameBoard.appendChild(cell);
+      
+      let icon;
+      do {
+        icon = getRandomIcon();
+      } while (
+        (i >= 2 && board[i-1][j] === icon && board[i-2][j] === icon) ||
+        (j >= 2 && board[i][j-1] === icon && board[i][j-2] === icon)
+      );
+      
+      board[i][j] = icon;
+      cell.textContent = icon;
+    }
+  }
+}
+
+function getRandomIcon() {
+  return ICONS[Math.floor(Math.random() * ICONS.length)];
+}
+
+function handleCellClick(event) {
+  if (!gameStarted || isSwapping) return;
+  
+  const clickedCell = event.target;
+  const row = parseInt(clickedCell.dataset.row);
+  const col = parseInt(clickedCell.dataset.col);
+
+  if (board[row][col] === SPECIAL_ICONS[4] || board[row][col] === SPECIAL_ICONS[5]) {
+    activateSpecialIcon(row, col);
+    return;
+  }
+
+  if (!selectedCell) {
+    selectedCell = { row, col };
+    clickedCell.classList.add('selected');
+  } else {
+    const prevRow = selectedCell.row;
+    const prevCol = selectedCell.col;
+    if (isAdjacent(prevRow, prevCol, row, col)) {
+      isSwapping = true;
+      swapCells(prevRow, prevCol, row, col);
+      setTimeout(() => {
+        if (!checkMatches()) {
+          swapCells(prevRow, prevCol, row, col);
+        }
+        isSwapping = false;
+      }, 300);
+    }
+    const prevCell = document.querySelector(`[data-row="${prevRow}"][data-col="${prevCol}"]`);
+    prevCell.classList.remove('selected');
+    selectedCell = null;
+  }
+}
+
+function isAdjacent(row1, col1, row2, col2) {
+  return (Math.abs(row1 - row2) === 1 && col1 === col2) || (Math.abs(col1 - col2) === 1 && row1 === row2);
+}
+
+function swapCells(row1, col1, row2, col2) {
+  const cell1 = document.querySelector(`[data-row="${row1}"][data-col="${col1}"]`);
+  const cell2 = document.querySelector(`[data-row="${row2}"][data-col="${col2}"]`);
+  
+  const temp = board[row1][col1];
+  board[row1][col1] = board[row2][col2];
+  board[row2][col2] = temp;
+
+  cell1.style.transition = 'transform 0.3s ease';
+  cell2.style.transition = 'transform 0.3s ease';
+
+  cell1.style.transform = 'scale(0)';
+  cell2.style.transform = 'scale(0)';
+
+  setTimeout(() => {
+    cell1.textContent = board[row1][col1];
+    cell2.textContent = board[row2][col2];
+    cell1.style.transform = 'scale(1)';
+    cell2.style.transform = 'scale(1)';
+    updateSpecialIcons(cell1);
+    updateSpecialIcons(cell2);
+  }, 150);
+}
+
+function updateSpecialIcons(cell) {
+  if (SPECIAL_ICONS[4] === cell.textContent || SPECIAL_ICONS[5] === cell.textContent) {
+    cell.classList.add('special-icon');
+  } else {
+    cell.classList.remove('special-icon');
+  }
+}
+
+function checkMatches() {
+  let matched = false;
+  const matchedCells = new Set();
+
+  function checkLine(i, j, di, dj) {
+    let count = 1;
+    let icon = board[i][j];
+    let cells = [{i, j}];
+
+    for (let k = 1; k < BOARD_SIZE; k++) {
+      let ni = i + di * k;
+      let nj = j + dj * k;
+      if (ni >= 0 && ni < BOARD_SIZE && nj >= 0 && nj < BOARD_SIZE && board[ni][nj] === icon) {
+        count++;
+        cells.push({i: ni, j: nj});
+      } else {
+        break;
+      }
+    }
+
+    if (count >= 3) {
+      matched = true;
+      cells.forEach(cell => matchedCells.add(`${cell.i},${cell.j}`));
+      
+      if (count === 4 || count === 5) {
+        const specialCell = cells[Math.floor(cells.length / 2)];
+        board[specialCell.i][specialCell.j] = SPECIAL_ICONS[count];
+        const cellElement = document.querySelector(`[data-row="${specialCell.i}"][data-col="${specialCell.j}"]`);
+        cellElement.textContent = SPECIAL_ICONS[count];
+        cellElement.classList.add('special-icon');
+        matchedCells.delete(`${specialCell.i},${specialCell.j}`);
+      }
+
+      cells.forEach(cell => {
+        const cellElement = document.querySelector(`[data-row="${cell.i}"][data-col="${cell.j}"]`);
+        cellElement.classList.add(`match-${count}`);
+      });
+    }
+  }
+
+  for (let i = 0; i < BOARD_SIZE; i++) {
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      checkLine(i, j, 0, 1);
+      checkLine(i, j, 1, 0);
+    }
+  }
+
+  if (matched) {
+    matchedCells.forEach(cellCoord => {
+      const [i, j] = cellCoord.split(',').map(Number);
+      const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+      cell.classList.add('match-animation');
+    });
+
+    setTimeout(() => {
+      matchedCells.forEach(cellCoord => {
+        const [i, j] = cellCoord.split(',').map(Number);
+        board[i][j] = null;
+        const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+        cell.classList.remove('match-animation', 'match-3', 'match-4', 'match-5');
+        cell.textContent = '';
+        cell.classList.remove('special-icon');
+      });
+      score += matchedCells.size * 3;
+      updateScore(matchedCells.size * 3);
+      fillBoard();
+    }, 500);
+  }
+
+  return matched;
+}
+
+function fillBoard() {
+  for (let j = 0; j < BOARD_SIZE; j++) {
+    let emptySpaces = 0;
+    for (let i = BOARD_SIZE - 1; i >= 0; i--) {
+      if (board[i][j] === null) {
+        emptySpaces++;
+      } else if (emptySpaces > 0) {
+        board[i + emptySpaces][j] = board[i][j];
+        board[i][j] = null;
+        const cell = document.querySelector(`[data-row="${i + emptySpaces}"][data-col="${j}"]`);
+        cell.textContent = board[i + emptySpaces][j];
+        cell.style.transform = 'translateY(0)';
+        updateSpecialIcons(cell);
+      }
+    }
+    for (let i = 0; i < emptySpaces; i++) {
+      board[i][j] = getRandomIcon();
+      const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+      cell.textContent = board[i][j];
+      cell.style.transform = `translateY(-${emptySpaces * 45}px)`;
+      cell.classList.remove('special-icon');
+      setTimeout(() => {
+        cell.style.transition = 'transform 0.3s ease';
+        cell.style.transform = 'translateY(0)';
+      }, 50);
+    }
+  }
+  setTimeout(checkMatches, 300);
+}
+
+function updateScore(points) {
+  score += points;
+  const scoreElement = document.getElementById('score-value');
+  scoreElement.textContent = score;
+  scoreElement.classList.add('score-change');
+  setTimeout(() => {
+    scoreElement.classList.remove('score-change');
+  }, 500);
+
+  const popup = document.getElementById('score-popup');
+  popup.textContent = `+${points}`;
+  popup.classList.add('show');
+  setTimeout(() => {
+    popup.classList.remove('show');
+  }, 1000);
+}
+
+function updateTimer() {
+  document.getElementById('time-value').textContent = timeLeft;
+  if (timeLeft > 0) {
+    timeLeft--;
+    setTimeout(updateTimer, 1000);
+  } else {
+    endGame();
+  }
+}
+
+function endGame() {
+  gameStarted = false;
+  document.getElementById('game-over').classList.add('show');
+  document.getElementById('final-score').textContent = score;
+  updateLeaderboard();
+}
+
+function restartGame() {
+  score = 0;
+  timeLeft = GAME_DURATION;
+  document.getElementById('score-value').textContent = '0';
+  document.getElementById('game-over').classList.remove('show');
+  document.getElementById('start-button').style.display = 'block';
+  initializeBoardWithNoMatches();
+}
+
+function activateSpecialIcon(row, col) {
+  const icon = board[row][col];
+  if (icon === SPECIAL_ICONS[4]) {
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      if (board[row][j] !== null) {
+        const cell = document.querySelector(`[data-row="${row}"][data-col="${j}"]`);
+        cell.classList.add('match-animation');
+        setTimeout(() => {
+          board[row][j] = null;
+          cell.textContent = '';
+          cell.classList.remove('match-animation', 'special-icon');
+        }, 300);
+      }
+    }
+    updateScore(BOARD_SIZE * 3);
+  } else if (icon === SPECIAL_ICONS[5]) {
+    const rocketCell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    rocketCell.classList.add('rocket-fly');
+    
+    for (let i = row - 1; i >= 0; i--) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        if (board[i][j] !== null) {
+          const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+          cell.classList.add('explode');
+          setTimeout(() => {
+            board[i][j] = null;
+            cell.textContent = '';
+            cell.classList.remove('explode', 'special-icon');
+          }, 500);
+        }
+      }
+    }
+    updateScore((row) * BOARD_SIZE * 3);
+  }
+
+  board[row][col] = null;
+  const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+  cell.textContent = '';
+  cell.classList.remove('special-icon');
+
+  setTimeout(() => {
+    fillBoard();
+    setTimeout(() => {
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+          if (board[i][j] === null) {
+            board[i][j] = getRandomIcon();
+            const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+            cell.textContent = board[i][j];
+          }
+        }
+      }
+      checkMatches();
+    }, 300);
+  }, 1000);
+}
+
+function updateLeaderboard() {
+  leaderboard.push(score);
+  leaderboard.sort((a, b) => b - a);
+  leaderboard = leaderboard.slice(0, 5);
+  localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+  displayLeaderboard();
+}
+
+function displayLeaderboard() {
+  const leaderboardList = document.getElementById('leaderboard-list');
+  leaderboardList.innerHTML = '';
+  leaderboard.forEach((score, index) => {
+    const li = document.createElement('li');
+    li.textContent = `${score} points`;
+    leaderboardList.appendChild(li);
+  });
+}
+
+function startGame() {
+  gameStarted = true;
+  document.getElementById('start-button').style.display = 'none';
+  score = 0;
+  timeLeft = GAME_DURATION;
+  document.getElementById('score-value').textContent = '0';
+  
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach(cell => cell.classList.add('glitch-cell'));
+  
+  setTimeout(() => {
+    cells.forEach(cell => cell.classList.remove('glitch-cell'));
+    initializeBoardWithNoMatches();
+    updateTimer();
+  }, 1000);
+}
+
+// Pomodoro functions
+function updatePomodoroDisplay() {
+  const minutes = Math.floor(pomodoroTime / 60);
+  const seconds = pomodoroTime % 60;
+  document.getElementById('pomodoro-timer').textContent = 
+    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function startPomodoro() {
+  if (!pomodoroRunning) {
+    pomodoroRunning = true;
+    pomodoroInterval = setInterval(() => {
+      if (pomodoroTime > 0) {
+        pomodoroTime--;
+        updatePomodoroDisplay();
+      } else {
+        clearInterval(pomodoroInterval);
+        pomodoroRunning = false;
+        alert("Pomodoro session completed!");
+      }
+    }, 1000);
+  }
+}
+
+function pausePomodoro() {
+  clearInterval(pomodoroInterval);
+  pomodoroRunning = false;
+}
+
+function resetPomodoro() {
+  clearInterval(pomodoroInterval);
+  pomodoroRunning = false;
+  pomodoroTime = 25 * 60;
+  updatePomodoroDisplay();
+}
+
+initializeBoardWithNoMatches();
+displayLeaderboard();
+updatePomodoroDisplay();
+</script>
+
+<div id="professional-headshot">
+  <h2>Day 1 – Create Your Professional Headshot</h2>
+  <div id="tally-form">
+    <iframe data-tally-src="https://tally.so/embed/mO0ybk?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="247" frameborder="0" marginheight="0" marginwidth="0" title="9 Free Professional Headshots"></iframe><script>var d=document,w="https://tally.so/widgets/embed.js",v=function(){"undefined"!=typeof Tally?Tally.loadEmbeds():d.querySelectorAll("iframe[data-tally-src]:not([src])").forEach((function(e){e.src=e.dataset.tallySrc}))};if("undefined"!=typeof Tally)v();else if(d.querySelector('script[src="'+w+'"]')==null){var s=d.createElement("script");s.src=w,s.onload=v,s.onerror=v,d.body.appendChild(s);}</script>
+  </div>
+</div>
+</body></html>
